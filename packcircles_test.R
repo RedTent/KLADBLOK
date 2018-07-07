@@ -25,16 +25,33 @@ ggplot(data = dat.gg) + geom_polygon(aes(x, y, group = id), colour = "black",
 
 # mijntest
 
-data <- mtcars %>% mutate(naam = rownames(.)) %>% select(naam, mpg) #%>% arrange(desc(mpg))
+data <- mtcars %>% mutate(naam = rownames(.)) %>% select(naam, mpg, hp) #%>% arrange(desc(mpg))
 data$id <- c(1:nrow(data))
+data <- data[sample(nrow(data)),]
 
 data <- cbind(circleProgressiveLayout(data$mpg),data) %>% rename(x_center = x, y_center = y)
 polys <- circleProgressiveLayout(data$mpg) %>% circleLayoutVertices(npoints = 100, xysizecols = c(1,2,3))
 data2 <- left_join(data, polys, by = "id")
 
-ggplot(data2, aes(x = x, y = y, fill = factor(id))) + geom_polygon(aes(x, y, group = id), data = polys, 
-                        colour = "black", alpha = 0.7, show.legend = FALSE) +
-geom_text(data = data, aes(x_center, y_center, label = naam)) +
+ggplot(data2, aes(x = x, y = y, fill = hp)) + geom_polygon(aes(x, y, group = id), data = data2, 
+                        colour = "black", alpha = 0.7) +
+geom_text_repel(data = data, aes(x_center, y_center, label = naam)) +
+  
+  coord_equal() + theme_void()
+
+# mijntest
+
+data <- mtcars %>% mutate(naam = rownames(.)) %>% select(naam, mpg, cyl) #%>% arrange(desc(mpg))
+data$id <- c(1:nrow(data))
+data <- data[sample(nrow(data)),]
+
+data <- cbind(circleProgressiveLayout(data$mpg),data) %>% rename(x_center = x, y_center = y)
+polys <- circleProgressiveLayout(data$mpg) %>% circleLayoutVertices(npoints = 100, xysizecols = c(1,2,3))
+data2 <- left_join(data, polys, by = "id")
+
+ggplot(data2, aes(x = x, y = y, fill = factor(cyl))) + geom_polygon(aes(x, y, group = id), data = data2, 
+                                                           colour = "black", alpha = 0.7) +
+  geom_text_repel(data = data, aes(x_center, y_center, label = naam)) +
   
   coord_equal() + theme_void()
 
@@ -54,7 +71,7 @@ my_circles <- function(data, labels, values){
   #print(plot_data)
   
   ggplot(plot_data, aes(x = x, y = y, fill = factor(id))) + 
-    geom_polygon(aes(x, y, group = id), data = circle_polys, colour = "black", alpha = 0.7, show.legend = FALSE) +
+    geom_polygon(aes(x, y, group = id), data = plot_data, colour = "black", alpha = 0.7, show.legend = FALSE) +
     geom_text_repel(data = circle_layout, aes(x_center, y_center), label = label_text) +
     coord_equal() + 
     theme_void()
