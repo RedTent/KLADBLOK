@@ -25,10 +25,10 @@ twn_preferred <- twn %>% mutate(taxonname_preferred = if_else(is.na(refername),t
     
 #twn %>% select(taxonlevel) %>% distinct() %>% arrange(taxonlevel)
 
-twn_levels <- twn_preferred %>% select(taxontype, taxonname_preferred, taxonlevel)
+twn_levels <- twn_preferred %>% select(taxontype, taxonname_preferred, taxonlevel) %>% distinct()
 
 twn_parents <- twn_preferred %>% 
-  select(taxontype, taxonname_preferred, taxonlevel, parentname) %>% 
+  select(taxontype, taxonname_preferred, taxonlevel, parentname, status) %>% 
   left_join(twn_levels, by = c("parentname" = "taxonname_preferred", "taxontype" = "taxontype")) %>% 
   rename(parentlevel = taxonlevel.y, taxonlevel = taxonlevel.x)
   
@@ -45,4 +45,8 @@ missende_verwijzing <- twn %>% filter(is.na(refername), status == "20")
 
 missende_parents <- twn %>%  filter(is.na(parentname)) #%>% group_by(taxonlevel) %>% summarise(n=n()) %>% select(n) %>% sum()
 
-missende_parents_preferred <- twn_preferred %>%  filter(is.na(parentname)) #%>% group_by(status,taxonlevel) %>% summarise(n=n()) %>% as.data.frame() 
+missende_parents_preferred <- twn_preferred %>%  filter(is.na(parentname)) #%>% group_by(status,taxonlevel) %>% summarise(n=n()) %>% arrange(desc(n))%>% as.data.frame() 
+
+onjuiste_parents <- twn_parents %>% filter(parentlevel == "Varietas")
+
+wisselende_parent_levels <- twn_parents %>% group_by(taxonlevel,parentlevel, status) %>% summarize(n = n())
