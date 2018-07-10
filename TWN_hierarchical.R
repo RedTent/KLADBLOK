@@ -23,15 +23,21 @@ twn_preferred <- twn %>% mutate(taxonname_preferred = if_else(is.na(refername),t
     left_join(twn, by = c("taxonname_preferred" = "taxonname", "taxontype" = "taxontype")) %>% 
     select(taxontype, taxonname_orig, taxonname_preferred, localname, taxongroup, taxonlevel, parentname, date, status)
     
-#twn %>% select(taxonlevel) %>% distinct() %>% arrange(taxonlevel)
+
 
 twn_levels <- twn_preferred %>% select(taxontype, taxonname_preferred, taxonlevel) %>% distinct()
+
+basic_levels <- c("Species", "Genus", "Familia", "Ordo", "Classis", "Phylum", "Regnum", "Imperium")
 
 twn_parents <- twn_preferred %>% 
   select(taxontype, taxonname_preferred, taxonlevel, parentname, status) %>% 
   left_join(twn_levels, by = c("parentname" = "taxonname_preferred", "taxontype" = "taxontype")) %>% 
   rename(parentlevel = taxonlevel.y, taxonlevel = taxonlevel.x)
   
+twn_basic_parents <- twn_preferred %>% 
+  select(taxontype, taxonname_preferred, taxonlevel, parentname, status) %>% 
+  left_join(twn_levels, by = c("parentname" = "taxonname_preferred", "taxontype" = "taxontype")) %>% 
+  rename(parentlevel = taxonlevel.y, taxonlevel = taxonlevel.x)
 
 
 # TWN onvolkomenheden -----------------------------------------------------
@@ -48,5 +54,12 @@ missende_parents <- twn %>%  filter(is.na(parentname)) #%>% group_by(taxonlevel)
 missende_parents_preferred <- twn_preferred %>%  filter(is.na(parentname)) #%>% group_by(status,taxonlevel) %>% summarise(n=n()) %>% arrange(desc(n))%>% as.data.frame() 
 
 onjuiste_parents <- twn_parents %>% filter(parentlevel == "Varietas")
+onjuiste_parents2 <- twn_parents %>% filter(parentlevel == taxonlevel)
+
+onjuist_taxonlevel <- twn %>% filter(taxonname == "Staurodesmus phimus") #wordt als phylum aangeduid ipv species
+onjuist_taxonlevel <- twn %>% filter(taxonname == "Syringa") #is genus ipv species
+
+fout_in_twn <- twn %>% filter(taxonname == "Eustigmatales incertae sedis") #parent kan niet van het zelfde niveau zijn, Eustigmatales moet voorkeursnaam zijn
+
 
 wisselende_parent_levels <- twn_parents %>% group_by(taxonlevel,parentlevel, status) %>% summarize(n = n())
