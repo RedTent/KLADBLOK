@@ -1,4 +1,8 @@
 library(dplyr)
+library(readr)
+library(openxlsx)
+
+#https://www.verspreidingsatlas.nl/soortenlijst/vaatplanten
 
 get_twn <- function(){
 require(readxl)
@@ -35,18 +39,37 @@ twn_taxon_levels <- twn_preferred %>% select(taxontype, taxonname_preferred, tax
 twn_parents <-  twn_preferred %>% 
                 select(taxontype, taxonname_preferred, taxonlevel, parentname, status) %>% 
                 left_join(twn_taxon_levels, by = c("parentname" = "taxonname_preferred", "taxontype" = "taxontype")) %>% 
-                rename(parentlevel = taxonlevel.y, taxonlevel = taxonlevel.x, status = status.x, parentstatus = status.y)
+                rename(parentlevel = taxonlevel.y, taxonlevel = taxonlevel.x, status = status.x, parentstatus = status.y) %>% 
+                distinct()
+
+
+# create complete tree ----------------------------------------------------
+
   
 taxonlevels <- volgorde_taxonlevels[["taxonlevel"]]
 
-twn_preferred_basis <- twn_preferred %>% select(taxontype, taxonname_orig, taxonname_preferred, taxonlevel)
+all_parents_basis <- twn_preferred %>% 
+  select(taxontype, taxonname_orig, taxonname_preferred, taxonlevel) %>% 
+  mutate(taxonname_actueel = taxonname_preferred, taxonlevel_actueel = taxonlevel)
 
 for (level in taxonlevels) {
-  filter(twn_preferred_basis, taxonlevel == level)
+  #print(level)
+  add_level <- twn_parents %>% filter(parentlevel == level) 
+  join_pairs <- c("taxonlevel_actueel" = "taxonlevel", "taxonname_actueel" = "taxonname_preferred", "taxontype" = "taxontype") 
+  all_parents_basis <- all_parents_basis %>% 
+    left_join(add_level, by = join_pairs) %>% 
+    mutate(!!level := if_else(taxonlevel_actueel == level, taxonname_actueel, parentname)) %>% 
+    
+    mutate(taxonname_actueel = if_else(is.na(.[[level]]),taxonname_actueel, .[[level]])) %>% 
+    select(-parentname, -status, -parentstatus, -parentlevel, -taxonlevel_actueel) %>% 
+    left_join(select(twn_taxon_levels,-status), by = c("taxontype" = "taxontype", "taxonname_actueel" = "taxonname_preferred")) %>% 
+    rename(taxonlevel = taxonlevel.x, taxonlevel_actueel = taxonlevel.y)
   
   
 }
 
+all_parents <- all_parents_basis %>% select(-taxonname_actueel, -taxonlevel_actueel, -taxonlevel)
+total <- twn_preferred %>% left_join(all_parents, c("taxontype" = "taxontype", "taxonname_orig" = "taxonname_orig", "taxonname_preferred" = "taxonname_preferred"))
 
 # TWN onvolkomenheden -----------------------------------------------------
 
