@@ -1,15 +1,19 @@
+library(ggplot2)
+
 compute_circle_groups <- function(data, scales, ...){
   require(packcircles)
   
+  data$id <- row(data)[,1]
   positions <- circleProgressiveLayout(data$y)
   circles <- circleLayoutVertices(positions, npoints = 100)
-  colnames(circles)[[3]] <- "group"
+  #colnames(circles)[[3]] <- "group"
   #print(data)
   #print(circles)
   data$y <- NULL
-  data <- merge(circles, data, by = "group", sort = FALSE)
+  data$group <- NULL
+  data <- merge(circles, data, by = "id", sort = FALSE)
   #print(data)
-  
+  names(data)[names(data) == "id"] <- "group"
   data
 }
 
