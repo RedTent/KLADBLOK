@@ -35,14 +35,10 @@ randomize <- function(data){data[sample(nrow(data)),]}
 
 StatPackcirclesLabel <- ggproto("StatPackcirclesLabel", Stat,
                                 compute_layer = function(data, scales, ...){
-                                  #print(data)
-                                  #data$id <- row(data)[,1]
+                                  
                                   circle_centers <- packcircles::circleProgressiveLayout(data$y)
                                   data$y <- NULL
                                   data <- cbind(circle_centers,data)
-                                  #data$group <- NULL
-                                  #data <- merge(circles, data, by = "id", sort = FALSE)
-                                  #names(data)[names(data) == "id"] <- "group"
                                   print(data)
                                   data
                                   
