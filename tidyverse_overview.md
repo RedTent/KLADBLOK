@@ -85,5 +85,6 @@ https://r4ds.had.co.nz/iteration.html#shortcuts
 https://r4ds.had.co.nz/iteration.html#mapping-over-multiple-arguments 
 
 `map2_*` - two inputs
+
 `pmap_*` - multiple inputs
 
