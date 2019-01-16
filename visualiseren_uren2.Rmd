@@ -1,0 +1,74 @@
+---
+#title: "Opzet visualisatie werkzaamheden team beleid"
+output:
+  html_document:
+    df_print: paged
+    code_folding: hide
+    css: markdown_JT.css
+---
+
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(viridisLite)
+library(readxl)
+
+```
+
+###Inlezen voorbeeld-dataset
+
+Dit is een voorbeeld dataset. Als input zou ook een urenplanning of tijdschrijf-informatie gebruikt kunnen worden.
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+urenoverzicht <- read_excel("urenoverzicht.xlsx", sheet = "Blad2")
+uren_matrix <- urenoverzicht  %>%  `row.names<-`(.$naam) %>% select(-naam) %>% as.matrix()
+
+
+```
+Deel van het urenoverzicht
+
+`r knitr::kable(urenoverzicht[12:18,1:6])`
+
+
+
+
+### Clustering per persoon
+
+De clustering is gemaakt op basis van in hoeverre de werkzaamheden van personen overeenkomen
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+
+clusters_n <- hclust(dist(uren_matrix)) 
+clusters_n %>% plot()
+
+```
+
+### Clustering per activiteit
+
+De clustering is gemaakt afhankelijk van welke personen de betreffende activiteiten uitvoeren.
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+
+clusters_act <- hclust(dist(t(uren_matrix))) 
+clusters_act %>% plot()
+
+```
+
+
+### Visualisatie
+
+Visualisatie van de uren, waarbij de bovenstaande clusteringen de volgorde van activiteiten en personen bepalen.
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+
+volgorde_n <- urenoverzicht$naam[clusters_n$order]
+volgorde_act <- colnames(urenoverzicht[,-1])[clusters_act$order]
+
+
+urenoverzicht %>% gather(activiteit, uren, -naam) %>% 
+  mutate(naam = fct_relevel(naam, volgorde_n), activiteit = fct_relevel(activiteit, volgorde_act)) %>% 
+  ggplot(aes(naam, activiteit, fill = uren, col)) + 
+  geom_tile() + 
+  scale_fill_viridis_c(option = "B") + 
+  theme(axis.text.x = element_text(angle = 270))
+  
+```
+
+
+
