@@ -39,6 +39,7 @@ install.packages(c(# basics
                    "roxygen2",
                    "testthat",
                    "curl",
+                   "usethis"
 
                    "swirl"))
 devtools::install_github("RedTent/JT")
