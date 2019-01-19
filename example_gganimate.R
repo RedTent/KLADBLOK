@@ -34,6 +34,9 @@ actie <- test_data %>% JT::add_jaar_maand() %>%
   scale_color_viridis_c()
   
 
-animate(actie, rewind = TRUE)  
+
+animate(actie, rewind = TRUE)
 animate(actie, end_pause = 10, duration = 20, fps = 20) 
+anim_save("test.gif")
+
 
