@@ -1,0 +1,106 @@
+---
+title: "Dashboard GBM"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+    social: menu
+    source_code: embed
+    css: flexdashboard_JT.css
+    navbar:
+      - { title: "About", href: "https://example.com/about", align: right }
+    
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(tidyverse)
+#library(dygraphs)
+```
+
+Deze tekst komt bovenaan op elke pagina
+
+# Dit is de sidebar {.sidebar}
+Maar je moet de tekst eronder typen en deze sidebar is algemeen,  anders moet je deze een level 2 header geven op een pagina
+
+
+# Homepage
+
+En komt deze tekst alleen op pagina 1 dan? Yep!
+
+
+
+
+Column {data-width=650}
+-----------------------------------------------------------------------
+
+### Chart A
+
+```{r}
+
+```
+
+Column {data-width=350}
+-----------------------------------------------------------------------
+
+### Chart B
+
+```{r}
+gauge(8, min = 3, max = 7, sectors = gaugeSectors(succes = c(3,4), warning = c(4,6), danger = c(6,7)), label = "Mijn tekst label", symbol = " n")
+
+#flexdashboard::valueBox(5, caption = "betekenis", icon = "fa-award")
+
+```
+
+### Chart C
+
+waar is chart C???
+
+
+### Chart C
+```{r}
+flexdashboard::valueBox(5, caption = "betekenis", icon = "fa-award")
+
+```
+
+###
+
+```{r}
+flexdashboard::valueBox(5, caption = "betekenis", icon = "fa-warehouse", color = "warning")
+
+```
+
+
+# Second page
+
+## My first column
+
+### row 1
+
+### row 2
+
+### row 3
+
+## My second column
+
+###
+
+```{r}
+
+
+```
+
+## Mu third column
+
+### row 1
+
+### row 2
+
+### row 3
+
+# Another page
+
+## Dit is de 2e sidebar {.sidebar}
+Maar je moet de tekst eronder typen en deze 2e sidebar is niet algemeen
+
+###
