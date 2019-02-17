@@ -24,7 +24,7 @@ Deze tekst komt bovenaan op elke pagina
 Maar je moet de tekst eronder typen en deze sidebar is algemeen,  anders moet je deze een level 2 header geven op een pagina
 
 
-# Homepage
+# Homepage {data-icon="fa-list"}
 
 En komt deze tekst alleen op pagina 1 dan? Yep!
 
@@ -59,19 +59,19 @@ waar is chart C???
 
 ### Chart C
 ```{r}
-flexdashboard::valueBox(5, caption = "betekenis", icon = "fa-award")
+flexdashboard::valueBox(5, caption = "betekenis", icon = "fa-globe")
 
 ```
 
 ###
 
 ```{r}
-flexdashboard::valueBox(5, caption = "betekenis", icon = "fa-warehouse", color = "warning")
+flexdashboard::valueBox(5, caption = "betekenis", icon = "glyphicon-globe", color = "warning")
 
 ```
 
 
-# Second page
+# Second page {data-icon="fa-chart-line"}
 
 ## My first column
 
@@ -98,7 +98,9 @@ flexdashboard::valueBox(5, caption = "betekenis", icon = "fa-warehouse", color =
 
 ### row 3
 
-# Another page
+# Another page {data-icon="glyphicon-tint"}
+
+
 
 ## Dit is de 2e sidebar {.sidebar}
 Maar je moet de tekst eronder typen en deze 2e sidebar is niet algemeen
