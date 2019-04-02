@@ -1,0 +1,271 @@
+---
+title: "Dashboard GGA Nitraat"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+    social: menu
+    source_code: embed
+    css: CSS/flexdashboard_JT.css
+    favicon: images/favicon.ico
+    logo: images/logo_hhsk_wit_48px.gif
+    
+
+---
+<script>
+$('.navbar-logo').wrap('<a href="http://www.hhsk.nl">');
+</script>
+
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(tidyverse)
+library(knitr)
+library(DT)
+library(leaflet)
+library(lubridate)
+library(sf)
+#library(JT)
+library(HHSKwkl) # Zie www.github.com/RedTent/HHSKwkl
+library(crosstalk)
+library(plotly)
+
+source("R/copy_data.R")
+
+options(OutDec= ",")
+options(DT.options = list(
+  language = list(
+    paginate = list(previous = 'Vorige', `next` = 'Volgende'),
+    search = "Zoeken",
+    decimal = ",",
+    info = 'Rijen _START_ tot _END_ Totaal: _TOTAL_ rijen',
+    lengthMenu = "Toon _MENU_ rijen"
+  )))
+```
+
+```{r load_data, include = FALSE}
+#knitr::opts_chunk$set(cache=TRUE)
+
+
+meetpunten <- import_meetpunten("data/meetpunten.csv") %>% 
+  filter(str_detect(mp, "GGA")) #%>%  
+  # st_as_sf(coords = c("x", "y"), crs = 28992) %>% 
+  # st_transform(crs = 4326)
+
+data_tabel <- import_fys_chem("data/fys_chem.csv") %>% 
+  filter(str_detect(mp, "GGA"), parnr == 35) %>% 
+  add_jaar_maand()
+
+data <- data_tabel %>% 
+  left_join(select(meetpunten, mp, x, y), by = "mp") %>% 
+  st_as_sf(coords = c("x", "y"), crs = 28992) %>% 
+  st_transform(crs = 4326)
+
+# parameters <- import_parameters("data/parameters.csv")
+
+
+```
+
+```{r voorbereiding_data, include=FALSE}
+
+pal <- colorBin(palette = c("Green","Yellow", "Orange", "Red", "Darkred", "#4d0000", "#330000"), na.color = "#330000", domain = c(0,200), bins = c(0,2,5,10,20,50,100,200))
+
+data_kaart <- data %>% 
+  group_by(mp) %>% 
+  summarise(datum_recent = max(datum),
+            datum_max = last(datum, order_by = waarde),
+            recente_waarde = last(waarde, datum),
+            gemiddelde_waarde = mean(waarde, na.rm = TRUE),
+            maximale_waarde = max(waarde, na.rm = TRUE),
+            aantal_metingen = n()) %>% 
+  ungroup()
+
+
+basiskaart <- function(data = NULL) {
+  leaflet(data) %>% 
+  addProviderTiles(providers$OpenStreetMap, group = "Kaart") %>% 
+  addProviderTiles(providers$Esri.WorldImagery, group = "Luchtfoto") %>% 
+  addLayersControl( baseGroups = c("Kaart", "Luchtfoto"), 
+                    options = layersControlOptions(collapsed = FALSE),
+                    position = "topleft")
+}
+
+
+```
+
+
+
+
+
+# Recente meting {data-icon="fa-map" data-navmenu="Kaarten"}
+
+De meest recente nitraatmeting is uitgevoerd op `r format(max(data$datum), "%A %e %B %Y")`.
+
+```{r kaart_recent, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12, fig.height=8}
+
+data_kaart %>% 
+  mutate(my_label = paste0("Nitraat: ", signif(recente_waarde, digits = 3), " mg N/l"),
+         my_popup = paste0("Meetpunt: ", mp, "</br> Nitraat: ", signif(recente_waarde, digits = 3), " mg N/l</br> Gemeten op: " , datum_recent)) %>% 
+  basiskaart() %>% 
+    addCircleMarkers(label = ~my_label, color = ~pal(recente_waarde), opacity = 1, fillOpacity = 1, popup = ~my_popup) %>% 
+    addLegend(pal = pal, values = ~recente_waarde, title = "Nitraatconcentratie </br> (meest recent)", labFormat = labelFormat(suffix = paste0(" mg N/l")), opacity = 1)
+
+```
+
+*Klik op een meetpunt voor meer informatie*
+
+# Gemiddelden {data-icon="fa-map" data-navmenu="Kaarten"}
+
+De gemiddelde nitraatconcentratie in de periode van `r format(min(data$datum), "%e %B %Y")` tot  `r format(max(data$datum), "%e %B %Y")`
+
+```{r kaart_gemiddelde, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12, fig.height=8}
+data_kaart %>% 
+  mutate(my_label = paste0("Nitraat: ", signif(gemiddelde_waarde, digits = 3), " mg N/l"),
+         my_popup = paste0("Meetpunt: ", mp, "</br> Gemiddeld nitraat: ", signif(gemiddelde_waarde, digits = 3), " mg N/l</br> Gemiddelde op basis van " , aantal_metingen, " metingen")) %>% 
+  basiskaart() %>% 
+    addCircleMarkers(label = ~my_label, color = ~pal(gemiddelde_waarde), opacity = 1, fillOpacity = 1, popup = ~my_popup) %>%      addLegend(pal = pal, values = ~gemiddelde_waarde, title = "Nitraatconcentratie </br> (gemiddeld)", labFormat = labelFormat(suffix = paste0(" mg N/l")), opacity = 1)
+
+```
+
+*Klik op een meetpunt voor meer informatie*
+
+# Hoogst gemeten {data-icon="fa-map" data-navmenu="Kaarten"}
+
+De hoogst gemeten nitraatconcentratie in de periode van `r format(min(data$datum), "%e %B %Y")` tot  `r format(max(data$datum), "%e %B %Y")`
+
+```{r kaart_max, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12, fig.height=8}
+
+data_kaart %>% 
+  mutate(my_label = paste0("Nitraat: ", signif(maximale_waarde, digits = 3), " mg N/l"),
+         my_popup = paste0("Meetpunt: ", mp, "</br> Hoogste nitraat: ", signif(maximale_waarde, digits = 3), " mg N/l</br> Gemeten op: ", datum_max)) %>% 
+  basiskaart() %>% 
+    addCircleMarkers(label = ~my_label, color = ~pal(maximale_waarde), opacity = 1, fillOpacity = 1, popup = ~my_popup) %>%      addLegend(pal = pal, values = ~maximale_waarde, title = "Nitraatconcentratie </br> (maximum)", labFormat = labelFormat(suffix = paste0(" mg N/l")), opacity = 1)
+
+```
+
+*Klik op een meetpunt voor meer informatie*
+
+
+
+
+
+# Grafieken {data-icon="fa-chart-line"}
+
+```{r basis_crosstalk_grafieken, echo=FALSE, message=FALSE, warning=FALSE, fig.width= 8}
+
+library(crosstalk)
+library(plotly)
+
+# identieke index is noodzakelijk voor correct filteren
+data_met_index <- data_tabel %>% arrange(datum, mp) %>% mutate(my_index = rownames(.))  
+
+data_grafiek <- data_met_index %>% SharedData$new(key = ~my_index, group = "meetpuntselectie")
+data_grafiek_kaart <- data_met_index %>% group_by(mp) %>% summarize(my_index = first(my_index)) %>% left_join(select(meetpunten, mp, x, y), by = "mp") %>%  st_as_sf(coords = c("x", "y"), crs = 28992) %>% st_transform(crs = 4326) %>% SharedData$new(key = ~my_index, group = "meetpuntselectie")
+
+
+# filter_select("mp", "Selecteer een meetpunt", data_grafiek, ~mp, multiple = FALSE)
+# plot_ly(data_grafiek, x = ~datum, y = ~waarde, type = "scatter", mode = "lines+markers", height = 400, split = ~mp)
+# basiskaart(data_grafiek_kaart) %>% addCircleMarkers(opacity = 1, fillOpacity = 1, label = ~mp, labelOptions = labelOptions(noHide = TRUE)) 
+
+
+
+```
+
+## Sidebar grafieken selectie {.sidebar}
+
+```{r grafiek_filter}
+filter_select("mp", "Selecteer hieronder een meetpunt", data_grafiek, ~mp, multiple = TRUE)
+```
+
+Selecteer hierboven één of meerdere meetpunten om de metingen in de grafiek weer te geven. 
+
+Op de bovenste kaart worden de geselecteerde meetpunten getoond. Op de onderste kaart worden alle beschikbare meetpunten weergegeven.
+
+## My first column {data-width=650}
+
+### {data-height=500}
+
+```{r grafiek_plotly}
+plot_ly(data_grafiek, x = ~datum, y = ~waarde, type = "scatter", mode = "lines+markers",  split = ~mp) %>% layout(title = "Nitraatconcentratie", xaxis = list(title = ""), yaxis = list(title = "mg N/l")) 
+
+```
+
+### {data-height=500}
+
+```{r grafiek_relatieve_verdeling, fig.asp= 0.5, fig.width=8 }
+my_breaks <- c(0,2,5,10,20,50,100,200)
+my_labels <- c("0 - 2 mg N/l",
+               "2 - 5 mg N/l",
+               "5 - 10 mg N/l",
+               "10 - 20 mg N/l",
+               "20 - 50 mg N/l",
+               "50 - 100  mg N/l",
+               "100 - 200 mg N/l")
+
+grafiek_rel <- data_tabel %>% 
+  mutate(waarde_cat = fct_rev(cut(waarde, breaks = my_breaks, labels = my_labels, ordered_result = TRUE))) %>% 
+  ggplot(aes(x = as.factor(datum), fill = waarde_cat)) + 
+  geom_bar(position = "fill") + 
+  scale_fill_manual(values = rev(c("Green","Yellow", "Orange", "Red", "Darkred", "#4d0000"))) + 
+  hhskthema() + 
+  labs(title = "Relatieve verdeling nitraatconcentraties", x = "", y = "Fractie meetpunten", fill = "") + 
+  #theme(axis.text.x = element_blank()) + 
+  scale_y_continuous(limits = c(0,1), expand = c(0,0))  +
+  theme(axis.text.x = element_text(angle = 50, hjust = 1))
+
+grafiek_rel
+```
+
+
+## Second column {.no-mobile, {data-width=350}}
+
+
+### Geselecteerd(e) meetpunt(en) {.no-mobile}
+
+```{r kaart_mp_selectie}
+basiskaart(data_grafiek_kaart) %>% addCircleMarkers(opacity = 1, fillOpacity = 1, radius = 7, color = "#0079c2", popup = ~mp, label = ~mp, labelOptions = labelOptions(noHide = TRUE))
+
+```
+
+### Alle meetpunten {.no-mobile}
+
+```{r kaart_alle_mp}
+basiskaart(data_kaart) %>% addCircleMarkers(opacity = 1, fillOpacity = 1, radius = 7, color = "#0079c2", label = ~mp, popup = ~mp, popupOptions = popupOptions(autoClose = FALSE))
+
+```
+
+
+
+# Meetgegevens {data-icon="fa-list"}
+
+## side_bar_meetgegevens {.sidebar}
+
+Deze tabel bevat de resultaten van alle uitgevoerde metingen. 
+
+Het is mogelijk om de tabel te sorteren door op te kolomnamen te klikken. Met het veld zoeken is het mogelijk om een meetpunt of een datum te selecteren
+
+## 
+
+### 
+
+```{r, message=FALSE, warning=FALSE, include=FALSE}
+tabel_weergave <- data_tabel %>% 
+  transmute(Meetpunt = mp,
+            Datum = datum,
+            Stof = "Nitraat",
+            Meetwaarde = waarde,
+            Eenheid = "mg N/l") %>% 
+  arrange(desc(Datum), Meetpunt)
+
+```
+
+`r datatable(tabel_weergave, rownames = FALSE) %>% formatRound(c(4), digits = 2, mark = "")`
+
+# Over deze rapportage {data-icon="glyphicon-tint"}
+
+## {.sidebar data-width=500}
+Deze rapportage wordt gemaakt in het kader van de gebiedsgerichte aanpak glastuinbouw. 
+
+Een onderdeel van deze gebiedsgerichte aanpak is dat er wekelijks nitraatmetingen worden uitgevoerd. De meting van de nitraatconcentratie geeft een indicatie van de emissies vanuit de glastuinbouw.
+
+

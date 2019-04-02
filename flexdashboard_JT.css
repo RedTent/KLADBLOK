@@ -120,3 +120,23 @@ hr{
 .section.sidebar{
  background-color:#ccebff; /*HHSK blauw maar lichter*/  
 }
+
+/*** default nav-tabs ***/
+.nav-tabs-custom > .nav-tabs > li.active {
+    border-top-color: #8dc63f;
+    border-right-color: #8dc63f;
+    border-left-color:#8dc63f;
+}
+
+.nav-tabs-custom > .nav-tabs {
+    border-bottom: 3px solid #8dc63f;
+}
+
+.nav-tabs-custom > .nav-tabs > li {
+    border-top: 3px solid transparent;
+    border-left: 3px solid transparent;
+    border-right: 3px solid transparent;
+    margin-bottom: -3px;
+}
+
+

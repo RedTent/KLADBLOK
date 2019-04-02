@@ -1,0 +1,294 @@
+---
+#title: "Gewasbeschermingsmiddelen 2018"
+#author: "Johan van Tent"
+#date: "`r format(Sys.time(), '%d %B %Y')`"
+output:
+  html_document:
+    css: CSS/markdown_JT.css
+    toc: TRUE
+    toc_float:
+      collapsed: FALSE
+params:
+  rap_jaar: 2019
+  
+---
+
+<style type="text/css">
+div.main-container {
+  max-width: 1400px;
+  margin-left: auto;
+  margin-right: auto;
+}
+</style>
+
+\br
+\br
+
+![](images/logo_website.png)
+
+\br
+\br
+
+# Gewasbeschermingsmiddelen `r params$rap_jaar` 
+**Gemaakt op:** `r format(Sys.time(), "%A %e %B %Y")`
+
+```{r setup, include=FALSE}
+options(OutDec= ",")
+#source("J:/!R/HHSK/FUNCTIES_0.5.R", encoding = 'UTF-8')
+library(dplyr)
+library(knitr)
+library(ggplot2)
+library(tidyr)
+library(DT)
+library(leaflet)
+library(HHSKwkl)
+#library(JT)
+#HHSKthema()
+
+options(DT.options = list(
+  language = list(
+    paginate = list(previous = 'Vorige', `next` = 'Volgende'),
+    search = "Zoeken",
+    decimal = ",",
+    info = 'Rijen _START_ tot _END_ Totaal: _TOTAL_ rijen',
+    lengthMenu = "Toon _MENU_ rijen"
+  )))
+options(knitr.kable.NA="")
+
+
+```
+
+```{r functies, include = FALSE}
+import_waterschapsgrens <- function(){
+  require(rgdal)
+  waterschapsgrens <- readOGR(dsn="data/Waterschapsgrens.shp", stringsAsFactors = FALSE)
+  waterschapsgrens
+
+}
+convert_to_wgs84 <- function(spatialobject){
+  require(rgdal)
+  spatialobject <- spTransform(spatialobject,"+init=EPSG:4326")
+  return(spatialobject)
+}
+
+
+```
+
+
+```{r load_data, include=FALSE}
+#knitr::opts_chunk$set(cache=TRUE)
+data <- HHSKwkl::import_fys_chem() %>% HHSKwkl::add_jaar_maand()
+meetpuntendf <- HHSKwkl::import_meetpunten() %>% HHSKwkl::add_lat_long()
+parameterdf <- HHSKwkl::import_parameters()
+normen <- HHSKwkl::import_normen_rivm(parameterdf = parameterdf)
+ws_grens <- import_waterschapsgrens() %>% convert_to_wgs84()
+merknamen <- readr::read_csv2("data/GBM_merknamen.csv")
+
+```
+
+\br
+
+\br
+
+\br
+
+\br
+
+\br
+
+\br
+
+![](images/kassen.jpg)
+
+######
+Dit document geeft een overzicht van de gemeten gewasbeschermingsmiddelen in `r params$rap_jaar`. Het document geeft weer op welke locaties wordt gemeten. Ook wordt per locatie en stof weergegeven welke stoffen zijn aangetroffen en welke boven de normwaarde uitkomen.
+
+
+######
+```{r verwerk_data, include=FALSE}
+
+data_sel <- data %>% filter(jaar == params$rap_jaar, parnr >999 & parnr<2000)
+
+overschrijdingen <- data_sel %>%
+  left_join(normen, by = "parnr") %>%
+  mutate(JGM_factor = waarde/norm_JGM, MAX_factor = waarde/norm_MAX, P90_factor = waarde/norm_P90) %>%
+  rowwise() %>%
+  mutate(maximale_factor =  ifelse(is.na(detectiegrens), 
+                                    yes = max(c(JGM_factor,MAX_factor,P90_factor), na.rm = TRUE), no = NA)) %>%
+  mutate(gemeten = 1, aangetroffen = sum(is.na(detectiegrens)), overschrijdend = sum(maximale_factor > 1, na.rm = TRUE)) %>% 
+  mutate(niet_aangetroffen = gemeten - aangetroffen, aangetroffen_niet_overschrijdend = aangetroffen - overschrijdend) %>% 
+  mutate(overschrijdend_10plus = sum(maximale_factor > 10, na.rm = TRUE), overschrijdend_10min = overschrijdend - overschrijdend_10plus) %>% 
+  ungroup() %>% 
+  add_maandnaam() %>% 
+  left_join(select(parameterdf, parnr,parnaamlang), by = "parnr") %>% 
+  left_join(merknamen, by = "parnr")
+
+## Per locatie
+
+aantal_overschrijdingen_per_loc <- overschrijdingen %>% 
+  group_by(mp, maandnaam) %>% 
+  summarise (aantal = sum(overschrijdend, na.rm = TRUE)) %>% 
+  spread(key = maandnaam, value = aantal, fill = "") %>% 
+  rename (Meetpunt = mp)
+
+
+aantal_aangetroffen_per_loc <- overschrijdingen %>% 
+  group_by(mp, maandnaam) %>% 
+  summarise (aantal = sum(aangetroffen, na.rm = TRUE)) %>% 
+  spread(key = maandnaam, value = aantal, fill = "") %>% 
+  rename (Meetpunt = mp)
+  
+aantal_metingen_per_loc <- overschrijdingen %>% 
+  group_by(mp, maandnaam) %>% 
+  summarise (aantal = sum(gemeten, na.rm = TRUE)) %>% 
+  spread(key = maandnaam, value = aantal, fill = "") %>% 
+  rename (Meetpunt = mp)
+
+## Per parameter
+aantal_overschrijdingen_per_par <- overschrijdingen %>% 
+  group_by(parnaamlang, Merknaam, maandnaam) %>% 
+  summarise (aantal = sum(overschrijdend, na.rm = TRUE)) %>% 
+  filter(aantal != 0) %>% 
+  spread(key = maandnaam, value = aantal, fill = "") %>% 
+  rename(Parameternaam = parnaamlang)
+
+aantal_aangetroffen_per_par <- overschrijdingen %>% 
+  group_by(parnaamlang, Merknaam, maandnaam) %>% 
+  summarise (aantal = sum(aangetroffen, na.rm = TRUE)) %>% 
+  filter(aantal != 0) %>% 
+  spread(key = maandnaam, value = aantal, fill = "") %>% 
+  rename(Parameternaam = parnaamlang)
+
+aantal_metingen_per_par <- overschrijdingen %>% 
+  group_by(parnaamlang, Merknaam, maandnaam) %>% 
+  summarise (aantal = sum(gemeten, na.rm = TRUE)) %>% 
+  filter(aantal != 0) %>% 
+  spread(key = maandnaam, value = aantal, fill = "") %>% 
+  rename(Parameternaam = parnaamlang)
+
+
+overschrijdingen_ind <- overschrijdingen %>%  
+  filter(overschrijdend == 1) %>% 
+  select(mp, datum, parnaamlang, Merknaam, waarde, eenheid, maximale_factor) %>% 
+  rename(Parameternaam = parnaamlang, Datum = datum,  Meetpunt = mp, Meetwaarde = waarde, Eenheid = eenheid, "Factor boven norm" = maximale_factor)
+print(overschrijdingen_ind)
+
+```
+
+# Kaart met meetlocaties
+
+```{r kaart, echo=FALSE, message=FALSE, warning=FALSE, fig.width=10, fig.height=6}
+
+html_label <- function(mp, mpomsch){
+grafiek_url <- paste0('<a style="color: rgb(0, 103, 198);" href="https://www.schielandendekrimpenerwaard.nl/kaart/waterkwaliteit/wkl_gegevens_op_kaart/grafieken/', mp,'.pdf" target="_blank">bekijk grafieken van de meetgegevens</a>')
+csv_url <- paste0('<a style="color: rgb(0, 103, 198);" href="https://www.schielandendekrimpenerwaard.nl/kaart/waterkwaliteit/wkl_gegevens_op_kaart/meetgegevens/',mp,'.csv" target="_blank">download de meetgegevens als csv-bestand</a>')
+foto <- paste0('<img width="300" height="200" alt="foto meetpuntlocatie niet beschikbaar" src="https://www.schielandendekrimpenerwaard.nl/kaart/waterkwaliteit/wkl_gegevens_op_kaart/foto/',mp,'.JPG">')
+
+label <- paste0("<b>Meetpuntcode:</b> ",mp,"<br /><br /><b>Locatie:</b> ",mpomsch,"<br /><br /><b>",grafiek_url,"<br /><br />",csv_url,"</b>")
+label
+  
+}
+
+mp_sel <- meetpuntendf %>% semi_join(data_sel, by = "mp") %>% mutate(label = html_label(mp,mpomsch))
+kaart <- leaflet(mp_sel) %>% 
+  addProviderTiles(providers$OpenStreetMap) %>% 
+  addCircleMarkers(popup = ~label, color = hhskblauw, popupOptions = popupOptions()) %>%  
+  addPolylines(data = ws_grens, color = "red", weight = 3) %>% 
+  addLabelOnlyMarkers(label = ~mp, group = "Meetpunt labels", labelOptions = labelOptions(noHide = TRUE)) %>% 
+  addLayersControl(overlayGroups = c("Meetpunt labels"), options=layersControlOptions(collapsed=FALSE))
+
+kaart
+```
+
+*Klik op een meetpunt om meer informatie van een meetpunt te krijgen. Van ieder meetpunt is het mogelijk om de meetgegevens als grafiek (.pdf) of als tabel (.csv) of openen.* 
+
+######
+# Meetresultaten {.tabset}
+
+*Kies `r knitr::asis_output("\U00E9\U00E9")`n van de onderstaande tabbladen om per meetpunt, per gewasbeschermingsmiddel of per individuele overschrijding informatie te zien *
+
+## Informatie per meetlocatie
+
+```{r figuur_per_locatie, echo=FALSE, fig.width = 10, fig.height = 8, out.width=960, out.height=768}
+
+
+# grafieken <- overschrijdingen %>%
+#   gather(key = categorie, value = aanwezigheid, niet_aangetroffen,aangetroffen_niet_overschrijdend,overschrijdend) %>%
+#   mutate(categorie2 = factor(as.character(categorie), ordered = TRUE, levels = c("niet_aangetroffen","aangetroffen_niet_overschrijdend","overschrijdend"))) %>%
+#   filter(categorie != "niet_aangetroffen") %>% 
+#   group_by(mp,maandnaam, categorie2) %>%
+#   summarise(aantal = sum(aanwezigheid)) %>%
+#   ggplot(aes(x = maandnaam, y = aantal, fill = categorie2)) + 
+#       geom_col() + 
+#       facet_wrap(~mp) + 
+#       scale_fill_manual(values = c("orange","red"), labels = c("Aangetroffen","Overschrijdend")) + 
+#       hhskthema() + 
+#       theme(axis.text.x = element_text(angle = 270, hjust = 1)) + 
+#       labs(title = "Aantal aangetroffen en overschrijdende stoffen", fill = "", y = "Aantal stoffen", x = "")
+
+grafieken <- overschrijdingen %>%
+  gather(key = categorie, value = aanwezigheid, niet_aangetroffen,aangetroffen_niet_overschrijdend,overschrijdend_10plus, overschrijdend_10min) %>%
+  mutate(categorie2 = factor(as.character(categorie), ordered = TRUE, levels = c("niet_aangetroffen","aangetroffen_niet_overschrijdend","overschrijdend_10min", "overschrijdend_10plus"))) %>%
+  filter(categorie != "niet_aangetroffen") %>% 
+  group_by(mp,maandnaam, categorie2) %>%
+  summarise(aantal = sum(aanwezigheid)) %>%
+  ggplot(aes(x = maandnaam, y = aantal, fill = categorie2)) + 
+      geom_col() + 
+      facet_wrap(~mp) + 
+      scale_fill_manual(values = c("orange","red", "darkred"), labels = c("Aangetroffen","Overschrijdend - minder dan 10x", "Overschrijdend - meer dan 10x")) + 
+      hhskthema() + 
+      theme(axis.text.x = element_text(angle = 270, hjust = 1)) + 
+      labs(title = "Aantal aangetroffen en overschrijdende stoffen", fill = "", y = "Aantal stoffen", x = "") +
+      scale_y_continuous(limits = c(1,NA), expand = c(0, 1), oob = scales::rescale_none)
+
+grafieken
+
+
+```
+
+ \br
+
+**_Aantal aangetroffen gewasbeschermingsmiddelen_**
+`r kable(aantal_aangetroffen_per_loc)`
+
+ \br
+
+**_Aantal gewasbeschermingsmiddelen dat boven de normwaarde is gemeten_** 
+`r kable(aantal_overschrijdingen_per_loc)`
+
+ \br
+
+**_Aantal onderzochte gewasbeschermingsmiddelen_**
+`r kable(aantal_metingen_per_loc)`
+
+## Informatie per gewasbeschermingsmiddel
+
+**_Aantal verschillende locaties waar een specifiek gewasbeschermingsmiddel is aangetroffen_**
+
+`r datatable(aantal_aangetroffen_per_par, rownames = FALSE) %>% formatStyle(c(2:13), textAlign = 'center') `
+
+ \br
+
+**_Aantal locaties waar een specifieke stof boven de normwaarde is gemeten_**
+`r kable(aantal_overschrijdingen_per_par)`
+
+
+## Individuele overschrijdingen
+
+**_Individuele metingen van stoffen die boven de normwaarde zijn gemeten met overschrijdingsfactoren_**
+
+ \br
+ 
+ *N.B. Toetsing aan normen gebeurt gewoonlijk per jaar. Dat een stof boven de normwaarde is gemeten leidt niet altijd tot een normoverschrijding.*
+
+ \br
+
+`r datatable(overschrijdingen_ind, rownames = FALSE, options = list(order = list(list(6, 'desc')))) %>% formatRound(c(7), digits =1, mark = "") %>% formatStyle(c(5,7), textAlign = 'center') %>% formatRound(c(5), digits =2, mark = "") `
+
+# Rapportages voorgaande jaren
+
+###[Rapportage 2018](https://www.schielandendekrimpenerwaard.nl/kaart/waterkwaliteit/waterkwaliteitsrapportages/Rapportage_GBM_2018.html){target="_blank"}
+
+###[Rapportage 2017](https://www.schielandendekrimpenerwaard.nl/kaart/waterkwaliteit/waterkwaliteitsrapportages/Rapportage_GBM_2017.html){target="_blank"}
+
+
