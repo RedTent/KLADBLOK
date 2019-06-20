@@ -20,7 +20,9 @@ install.packages(c(# basics
                    
                    # GIS
                    "rgdal",
+                   "sf",
                    "gstat",
+                   "tmap",
                    
                    # Visualisation
                    "hexbin",
@@ -39,7 +41,9 @@ install.packages(c(# basics
                    "roxygen2",
                    "testthat",
                    "curl",
-                   "usethis"
+                   "usethis",
+                   "bookdown",
+                   "tinytex",
 
                    "swirl"))
-devtools::install_github("RedTent/JT")
+
