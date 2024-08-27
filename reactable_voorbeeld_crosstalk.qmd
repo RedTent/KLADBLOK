@@ -1,0 +1,29 @@
+---
+title: "Reactable & Crosstalk"
+format: html
+editor: visual
+---
+
+```{r}
+#| echo: false
+#| warning: false
+#| message: false
+
+library(crosstalk)
+library(reactable)
+
+data <- HHSKwkl:::test_fys_chem()
+data_shared <- SharedData$new(data)            
+
+shiny::fluidRow(
+  shiny::column(
+    4,
+    filter_checkbox("mp_sel", "Meetpunt", data_shared, ~mp)
+    # filter_slider("price", "Price", data, ~Price, width = "100%"),
+    # filter_select("mfr", "Manufacturer", data, ~Manufacturer)
+  ),
+  shiny::column(
+    8,
+    reactable(data_shared)
+  ))
+```
