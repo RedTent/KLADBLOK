@@ -13,25 +13,6 @@ bio <- data_online("biologie.rds") %>%
   mutate(wl_code = str_remove(mp, "_\\d\\d$"))
 
 
-# accum_kp <- 
-#   kp_fyto %>%   
-#   mutate(naam = increase_taxonlevel(naam, "Species")) %>% 
-#   group_by(datum, naam) %>% 
-#   summarise(waarde = sum(waarde_totaal)) %>% 
-#   mutate(naam = str_replace(naam, " ", "_")) %>% 
-#   select(datum, naam, waarde) %>% 
-#   pivot_wider(names_from = naam, values_from = waarde, values_fill = 0) %>% 
-#   arrange(datum) %>% 
-#   add_jaar() %>% 
-#   # filter(jaar > 2014, jaar < 2020) %>% 
-#   group_by(jaar) %>% 
-#   select(-datum) %>% 
-#   nest() %>% 
-#   mutate(accum = map(data, specaccum),
-#          richness = map(accum, "richness")) %>% 
-#   unnest(richness) %>% 
-#   mutate(nr = row_number())
-
 accum <-
   bio %>% 
   mutate(naam = increase_taxonlevel(naam, "Species")) %>% 
@@ -50,7 +31,7 @@ accum <-
   mutate(nr = row_number()) %>% 
   ungroup()
 
-waterlichaam <- "KRW_BIP"
+# waterlichaam <- "KRW_BIP"
 
 pdf("specaccum_mafa.pdf", width = 8, height = 6)
 for (waterlichaam in sort(unique(accum$wl_code))) {
@@ -80,3 +61,5 @@ print(plot_accum)
   
 }
 dev.off()
+
+  
