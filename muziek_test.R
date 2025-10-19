@@ -6,13 +6,18 @@ x |> render_music(file = "images/test.png", keep_ly = TRUE)
 
 phrase(x) |> track()
 
-muziek1 <- "e4 f# g a f#2 e2"
-regel1 <- as_lyrics("Bron van za- lig- he- den,")
+muziek1 <- "e4 f# g a f#2 e2 g4 a b c'8( b8) a2 g"
+regel1 <- as_lyrics("Bron van za- lig- he- den, doe m'uw pad be- tre- den")
 
 phrase(muziek1) |> 
-  track(lyrics = regel1, tab = FALSE) |> 
+  track(lyrics = regel1, tab = FALSE, key = "g") |> 
   score() |> 
-  render_score("images/ex02.pdf")
+  render_score("images/test3.png")
+
+phrase(muziek1) |> 
+  track(lyrics = regel1, tab = FALSE, key = "g") |> 
+  score() |> 
+  render_midi("images/test3_midi.mid")
 
 # as_music(muziek1, lyrics = regel1) |> 
 #   render_music(file = "images/test2.png")
