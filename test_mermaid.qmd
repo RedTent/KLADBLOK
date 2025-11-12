@@ -1,0 +1,63 @@
+---
+title: "Untitled"
+format: html
+brand: "_extensions/HHSK-wkl/brand_hhsk/brand/_brand.yml"
+theme: 
+  - brand
+  - mermaid.scss
+---
+
+
+
+## Quarto
+
+Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+
+## Running Code
+
+When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
+
+```{r}
+1 + 1
+```
+
+You can add options to executable code like this 
+
+```{r}
+#| echo: false
+2 * 2
+```
+
+The `echo: false` option disables the printing of code (only output is displayed)
+
+
+
+```{mermaid}
+---
+title: Titel
+---
+
+
+
+flowchart LR
+classDef default fill:#00ff00,stroke:#333,stroke-width:4px;
+    
+A[Kreeften] -->|afname| B(Waterplanten)
+B -->|toename| C[Blauwalg]
+style A fill: #ff0000,color:,stroke:#1b15f1,stroke-width:1px
+    
+
+```
+
+```{mermaid}
+---
+title: 
+---
+
+flowchart TD
+    
+A(**Toename kreeften**) ==> B(**Afname waterplanten**)
+B ==> C(**Toename blauwalg**)
+    
+
+```

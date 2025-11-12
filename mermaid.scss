@@ -1,0 +1,29 @@
+/*-- scss:defaults --*/
+
+$blauw: #0067C6; 
+$groen: #76B900; 
+$oranje: #F9651F;
+$grijs: #636363; 
+$wit: #FFFFFF;     
+$donkerblauw: #293173; 
+$donkergroen: #015F03; 
+$donkergrijs: #4F4F4F; 
+$lichtblauw: #8ED4DA;  
+$lichtgroen: #CBDF74;  
+$lichtoranje: #FFBC80; 
+$lichtgrijs: #B5B5B5;  
+$lichterblauw: #D2EBEE;
+$lichtergrijs: #E0E0E0;
+$lichtergroen: #E7F0C0;
+$tekstgrijs: #222222;  
+
+$mermaid-node-bg-color: $lichtergroen;
+$mermaid-node-fg-color: $donkerblauw;
+$mermaid-fg-color: $donkerblauw;
+
+$mermaid-bg-color: $lichterblauw;
+$mermaid-edge-color: $donkerblauw;
+$mermaid-label-fg-color: $blauw;
+
+/*-- scss:rules --*/
+
